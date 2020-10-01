@@ -1,3 +1,4 @@
+#rm(list=ls())
 library(nleqslv)
 datt=NULL
 ppois=function(x,alpha,theta){
@@ -99,6 +100,10 @@ biasp=NULL
 biasalpha=NULL
 biastheta=NULL
 
+clsp=NULL
+clsalpha=NULL
+clstheta=NULL
+
 msep=NULL
 msealpha=NULL
 msetheta=NULL
@@ -107,13 +112,25 @@ mrep=NULL
 mrealpha=NULL
 mretheta=NULL
 
-p2=0.7
-alpha2=0.7
-theta2=0.5
-nn=100
+p2=0.5
+alpha2=0.5
+theta2=2
+nn=500
+
+logllse=function(par){
+p1=par[1]
+alpha1=par[2]
+theta1=par[3]
+
+xt=datt[2:nn]
+xt1=datt[1:(nn-2)]
+f=sum((xt-p1*xt1-(2-alpha1)/(2*theta1))^2)
+
+return(f)
+}
 
 
-for( j in 1:1000)
+for( j in 1:500)
 {
 datt=NULL
 datmean=NULL
@@ -122,24 +139,35 @@ theta=NULL
 my_acf=NULL
 x1=NULL
 ppp=NULL
-datt=r.inarnpl(nn,p2,alpha2,theta2,200)
+datt=as.numeric(r.inarnpl(nn,p2,alpha2,theta2,200))
 
 theta0=c(p2,alpha2,theta2)
 my_acf = acf(datt,plot=F)
 ppp=my_acf$acf[2]
 
 qq=function(x){
-theta=(2-x)/(2*mean(datt)*(1-ppp))
-ff=((x*(x + 2) + 2*theta*(x - 2) - 4)/(4*theta^2) + (ppp*(x - 2))/(2*theta))/(ppp^2 - 1)-var(datt)
+alpha=2*(1-x*mean(datt)*(1-ppp))
+ff=1+(4-alpha*(alpha+2))/(2*(2-alpha)*x*(1+ppp))-var(datt)/mean(datt)
 return(ff)
 }
 
-x1=uniroot(qq,c(0,1),lower=0,upper=1,maxiter=10000)$root
-theta=(2-x1)/(2*mean(datt)*(1-ppp))
+x1=uniroot(qq,c(1,2),lower=1,upper=2,maxiter=10000)$root
+alpha=2*(1-x1*mean(datt)*(1-ppp))
 
 ywp[j]=ppp
-ywalpha[j]=x1
-ywtheta[j]=theta
+ywalpha[j]=alpha
+ywtheta[j]=x1
+
+######################
+
+theta01=c(ppp,alpha,x1)
+resultlse=optim(par=theta0,fn=logllse,method="N",hessian=T)
+
+clsp[j]=resultlse$par[1]
+clsalpha[j]=resultlse$par[2]
+clstheta[j]=resultlse$par[3]
+
+####################
 
 result=constrOptim(theta=theta0,f=logl1,data=datt,grad=NULL,ui=rbind(c(0,1,0),c(0,-1,0)),ci=c(0,-1))
 
@@ -158,19 +186,33 @@ ywbiasalpha=mean((ywalpha-alpha2))
 ywbiastheta=mean((ywtheta-theta2))
 
 
-mlemsep=sum((mlep-p2)^2)/1000
-mlemsealpha=sum((mlealpha-alpha2)^2)/1000
-mlemsetheta=sum((mletheta-theta2)^2)/1000
+clsbiasp=mean((clsp-p2))
+clsbiasalpha=mean((clsalpha-alpha2))
+clsbiastheta=mean((clstheta-theta2))
 
-ywmsep=sum((ywp-p2)^2)/1000
-ywmsealpha=sum((ywalpha-alpha2)^2)/1000
-ywmsetheta=sum((ywtheta-theta2)^2)/1000
 
-mlemrep=sum(((mlep/p2)))/1000
-mlemrealpha=sum(((mlealpha/alpha2)))/1000
-mlemretheta=sum(((mletheta/theta2)))/1000
+mlemsep=sum((mlep-p2)^2)/500
+mlemsealpha=sum((mlealpha-alpha2)^2)/500
+mlemsetheta=sum((mletheta-theta2)^2)/500
 
-ywmrep=sum(((ywp/p2)))/1000
-ywmrealpha=sum(((ywalpha/alpha2)))/1000
-ywmretheta=sum(((ywtheta/theta2)))/1000
+ywmsep=sum((ywp-p2)^2)/500
+ywmsealpha=sum((ywalpha-alpha2)^2)/500
+ywmsetheta=sum((ywtheta-theta2)^2)/500
+
+clsmsep=sum((clsp-p2)^2)/500
+clsmsealpha=sum((clsalpha-alpha2)^2)/500
+clsmsetheta=sum((clstheta-theta2)^2)/500
+
+
+mlemrep=sum(((mlep/p2)))/500
+mlemrealpha=sum(((mlealpha/alpha2)))/500
+mlemretheta=sum(((mletheta/theta2)))/500
+
+ywmrep=sum(((ywp/p2)))/500
+ywmrealpha=sum(((ywalpha/alpha2)))/500
+ywmretheta=sum(((ywtheta/theta2)))/500
+
+clsmrep=sum(((clsp/p2)))/500
+clsmrealpha=sum(((clsalpha/alpha2)))/500
+clsmretheta=sum(((clstheta/theta2)))/500
 
