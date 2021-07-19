@@ -1,41 +1,30 @@
-#rm(list=ls())
-library(nleqslv)
-datt=NULL
-ppois=function(x,alpha,theta){
+ppte=function(x,alpha,theta){
 f=1-((1-alpha)/(1+theta)^(x+1)+alpha/(1+2*theta)^(x+1))
 return(f)
 }
 
-r.pois <- function(n, L,T)
+r.pte <- function(n, alpha,theta)
 {
 U <- runif(n)
 X <- rep(0,n)
-# loop through each uniform
 for(i in 1:n)
 {
-# first check if you are in the first interval
-if(U[i] < ppois(0,L,T))
+if(U[i] < ppte(0,alpha,theta))
 {
 X[i] <- 0
 } else
 {
-# while loop to determine which subinterval,I, you are in
-# terminated when B = TRUE
 B = FALSE
 I = 0
 while(B == FALSE)
 {
-# the interval to check
-int <- c( ppois(I, L,T), ppois(I+1,L,T) )
-# see if the uniform is in that interval
+int <- c( ppte(I, alpha,theta), ppte(I+1,alpha,theta) )
 if( (U[i] > int[1]) & (U[i] < int[2]) )
 {
-# if so, quit the while loop and store the value
 X[i] <- I+1
 B = TRUE
 } else
 {
-# If not, continue the while loop and increase I by 1
 I=I+1
 }
 }
